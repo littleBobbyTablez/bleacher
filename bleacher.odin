@@ -22,7 +22,10 @@ red_pos: rl.Vector2
 blue_pos: rl.Vector2
 green_pos: rl.Vector2
 
-move_pos: rl.Vector2
+
+rectangles: [2]rl.Rectangle
+rect_pos: [2]rl.Vector2
+move_pos: ^rl.Vector2
 mouse_delta: rl.Vector2
 
 is_attached: bool
@@ -38,7 +41,12 @@ init::proc() {
     blue_pos = {58, CANVAS_SIZE/2 + 40}
     green_pos = {112, CANVAS_SIZE/2 + 40}
     
-    move_pos = {f32(CANVAS_SIZE) / 2, (f32(CANVAS_SIZE)/ 6) * 5}
+    rect_pos[0] = {f32(CANVAS_SIZE) / 2, (f32(CANVAS_SIZE)/ 6) * 5}
+    rect_pos[1] = {f32(CANVAS_SIZE) / 2 + 30, (f32(CANVAS_SIZE)/ 6) * 5}
+
+    
+
+    move_pos = &rect_pos[0]
 
     available_points = 255*3 - u32(blue) - u32(red) - u32(green)
 }
@@ -100,14 +108,20 @@ main::proc() {
     for !rl.WindowShouldClose() {
 
         if is_attached {
-            move_pos = get_mouse_pos_on_canvas() - mouse_delta
+            move_pos^ = get_mouse_pos_on_canvas() - mouse_delta
         }
 
-        test_rect := rl.Rectangle {
-            move_pos.x, move_pos.y,
+        rectangles[0] = rl.Rectangle {
+            rect_pos[0].x, rect_pos[0].y,
             20, 20
         }
 
+        rectangles[1] = rl.Rectangle {
+            rect_pos[1].x, rect_pos[1].y,
+            20, 20
+        }
+
+       
         if !game_over {
             switch {
                 case rl.IsKeyPressed(.W) || rl.IsKeyPressedRepeat(.W):
@@ -129,12 +143,16 @@ main::proc() {
                     }
 
                 case rl.IsMouseButtonPressed(.LEFT):
-                    if is_mouse_inside_rect(test_rect) && !is_attached {
-                        is_attached = true
-                        mouse_delta = get_mouse_pos_on_canvas() - move_pos
-                    } else if is_attached {
+                    if !is_attached {
+                        for i in 0..<len(rectangles) {
+                           if is_mouse_inside_rect(rectangles[i]) {
+                                is_attached = true
+                                move_pos = &rect_pos[i]
+                                mouse_delta = get_mouse_pos_on_canvas() - move_pos^
+                            }
+                        }
+                    }else if is_attached {
                         is_attached = false
-
                         mouse_delta = {0, 0}
                     }
     
@@ -190,7 +208,9 @@ main::proc() {
         draw_color_rect(rl.GREEN, green_pos.x, green_pos.y, green_added)
 
 
-        rl.DrawRectangleRec(test_rect, rl.PURPLE)
+        for r in rectangles {
+            rl.DrawRectangleRec(r, rl.PURPLE)
+        }
 
         if game_over {
             rl.DrawText("Game Over!", 6, 6, 25, rl.BLACK)
