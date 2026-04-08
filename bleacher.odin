@@ -22,6 +22,11 @@ red_pos: rl.Vector2
 blue_pos: rl.Vector2
 green_pos: rl.Vector2
 
+move_pos: rl.Vector2
+mouse_delta: rl.Vector2
+
+is_attached: bool
+
 game_over: bool
 
 init::proc() {
@@ -29,10 +34,12 @@ init::proc() {
     red = random_color_value()
     green = random_color_value()
 
-    red_pos = {4, CANVAS_SIZE/2 + 29}
-    blue_pos = {58, CANVAS_SIZE/2 + 29}
-    green_pos = {112, CANVAS_SIZE/2 + 29}
+    red_pos = {4, CANVAS_SIZE/2 + 40}
+    blue_pos = {58, CANVAS_SIZE/2 + 40}
+    green_pos = {112, CANVAS_SIZE/2 + 40}
     
+    move_pos = {f32(CANVAS_SIZE) / 2, (f32(CANVAS_SIZE)/ 6) * 5}
+
     available_points = 255*3 - u32(blue) - u32(red) - u32(green)
 }
 
@@ -74,11 +81,33 @@ color_is_addable::proc(color: Colors) -> bool {
     return false
 }
 
+get_mouse_pos_on_canvas::proc() -> rl.Vector2 {
+     return (rl.GetMousePosition()/WINDOWSIZE) * CANVAS_SIZE
+}
+
+is_mouse_inside_rect::proc(rect: rl.Rectangle) -> bool {
+    mouse_pos := get_mouse_pos_on_canvas()
+    return mouse_pos.x >= rect.x && mouse_pos.y >= rect.y && mouse_pos.x <=rect.x + rect.width && mouse_pos.y <= rect.y + rect.height
+}
+
 main::proc() {
     rl.InitWindow(WINDOWSIZE, WINDOWSIZE, "Bleacher")
     init()
 
+
+
+
     for !rl.WindowShouldClose() {
+
+        if is_attached {
+            move_pos = get_mouse_pos_on_canvas() - mouse_delta
+        }
+
+        test_rect := rl.Rectangle {
+            move_pos.x, move_pos.y,
+            20, 20
+        }
+
         if !game_over {
             switch {
                 case rl.IsKeyPressed(.W) || rl.IsKeyPressedRepeat(.W):
@@ -98,6 +127,16 @@ main::proc() {
                         available_points -= 1
                         green_added += 1
                     }
+
+                case rl.IsMouseButtonPressed(.LEFT):
+                    if is_mouse_inside_rect(test_rect) && !is_attached {
+                        is_attached = true
+                        mouse_delta = get_mouse_pos_on_canvas() - move_pos
+                    } else if is_attached {
+                        is_attached = false
+
+                        mouse_delta = {0, 0}
+                    }
     
                 case rl.IsKeyPressed(.G):
                     if available_points == 0 {
@@ -110,6 +149,8 @@ main::proc() {
                     blue_added = 0
                     green_added = 0
             }
+
+            
     
         } else {
             if rl.IsKeyDown(.ENTER) {
@@ -134,15 +175,22 @@ main::proc() {
         
         rl.DrawRectangleRec(color_rect, {u8(red), u8(green), u8(blue), 255})
 
+        mouse_pos:= get_mouse_pos_on_canvas()
         available_text := fmt.ctprintf("Points to give: %v", available_points)
+        // mouse_text := fmt.ctprintf("x: %v y: %v  goal_x: v% goal_y: %v", mouse_pos.x, mouse_pos.y, move_pos.x, move_pos.y)
         scroe_text := fmt.ctprintf("Score: %v", red + blue + green)
 
         rl.DrawText(available_text, 4, (CANVAS_SIZE/2) + 14 , 10, rl.BLACK )
+        
+        // rl.DrawText(mouse_text, 4, (CANVAS_SIZE/2) +  26, 10, rl.BLACK )
         rl.DrawText(scroe_text, CANVAS_SIZE - 60, (CANVAS_SIZE/2) + 14 , 10, rl.BLACK )
 
         draw_color_rect(rl.RED, red_pos.x, red_pos.y, red_added)
         draw_color_rect(rl.BLUE, blue_pos.x, blue_pos.y, blue_added)
         draw_color_rect(rl.GREEN, green_pos.x, green_pos.y, green_added)
+
+
+        rl.DrawRectangleRec(test_rect, rl.PURPLE)
 
         if game_over {
             rl.DrawText("Game Over!", 6, 6, 25, rl.BLACK)
