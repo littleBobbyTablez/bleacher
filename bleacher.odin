@@ -142,19 +142,18 @@ main::proc() {
                         green_added += 1
                     }
 
-                case rl.IsMouseButtonPressed(.LEFT):
-                    if !is_attached {
-                        for i in 0..<len(rectangles) {
-                           if is_mouse_inside_rect(rectangles[i]) {
-                                is_attached = true
-                                move_pos = &rect_pos[i]
-                                mouse_delta = get_mouse_pos_on_canvas() - move_pos^
-                            }
+                case rl.IsMouseButtonDown(.LEFT):
+                    for i in 0..<len(rectangles) {
+                        if is_mouse_inside_rect(rectangles[i]) {
+                            is_attached = true
+                            move_pos = &rect_pos[i]
+                            mouse_delta = get_mouse_pos_on_canvas() - move_pos^
                         }
-                    }else if is_attached {
-                        is_attached = false
-                        mouse_delta = {0, 0}
                     }
+
+                case rl.IsMouseButtonReleased(.LEFT):
+                    is_attached = false
+                    mouse_delta = {0, 0}
     
                 case rl.IsKeyPressed(.G):
                     if available_points == 0 {
